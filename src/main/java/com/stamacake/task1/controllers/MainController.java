@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.PostConstruct;
 
 @Getter
+@Setter
 class UrlForm {
     private String url;
 }
@@ -68,7 +69,7 @@ public class MainController {
 
     @PostMapping(path = "/short")
     @ResponseBody
-    public ResponseEntity<String> urlShort(@RequestBody UrlForm url) {
+    public ResponseEntity<?> urlShort(@RequestBody UrlForm url) {
         if (url.getUrl() == null) {
             return (ResponseEntity.status(HttpStatus.BAD_REQUEST).body("enter url\n"));
         } else log.info("POST /short url: " + url.getUrl());
@@ -82,28 +83,34 @@ public class MainController {
 
         // если нашли
         if (id != -1) {
-            return new ResponseEntity<>(idToShort(getIdByUrl(url.getUrl()))+"\n", HttpStatus.OK);
+            UrlForm urlForm = new UrlForm();
+            urlForm.setUrl(idToShort(getIdByUrl(url.getUrl())));
+            return new ResponseEntity<>(urlForm, HttpStatus.OK);
         }
 
         // не нашли -> добавляем
         jdbcTemplate.execute("insert into urls (url) values ( \'" + url.getUrl() + "\');");
         log.info(url.getUrl());
-        return new ResponseEntity<>(idToShort(getIdByUrl(url.getUrl()))+"\n", HttpStatus.OK);
+        UrlForm urlForm = new UrlForm();
+        urlForm.setUrl(idToShort(getIdByUrl(url.getUrl())));
+        return new ResponseEntity<>(urlForm, HttpStatus.OK);
     }
 
     @PostMapping(path = "/long")
-    public ResponseEntity<String> urlLong(@RequestBody UrlForm shortUrl) {
+    public ResponseEntity<?> urlLong(@RequestBody UrlForm shortUrl) {
         if (shortUrl.getUrl() == null) {
             return (ResponseEntity.status(HttpStatus.BAD_REQUEST).body("enter url\n"));
         } else log.info("POST /long url: " + shortUrl.getUrl());
 
         Long id = shortToId(shortUrl.getUrl());
         try {
-            return new ResponseEntity<>(getUrlById(id)+"\n", HttpStatus.OK);
+            UrlForm urlForm = new UrlForm();
+            urlForm.setUrl(getUrlById(id));
+            return new ResponseEntity<Object>(urlForm, HttpStatus.OK);
         } catch (Exception e) {
             log.info(e.getMessage());
             log.info("url not found");
-            return new ResponseEntity<>("url not found\n", HttpStatus.OK);
+            return new ResponseEntity<>("short url not found\n", HttpStatus.OK);
         }
 
     }
